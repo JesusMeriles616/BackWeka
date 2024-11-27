@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Archivos WEKA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        label {
+            font-size: 1.1em;
+            margin-top: 10px;
+            display: block;
+        }
+
+        select, input[type="file"] {
+            font-size: 1em;
+            margin-top: 10px;
+            padding: 5px;
+            width: 100%;
+        }
+
+        button {
+            font-size: 1.1em;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #result {
+            margin-top: 20px;
+            white-space: pre-wrap; /* Mantiene saltos de línea y espacios */
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-x: auto;
+        }
+
+        /* Agregar estilo para mensajes de alerta */
+        .error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body onload="toggleEvaluationOptions()">
+    <h2>Subir Archivos para Análisis WEKA</h2>
+    
+    <!-- Input para seleccionar el archivo -->
+    <input type="file" id="fileInput" accept=".csv, .arff">
+    
+    <!-- Selector para elegir el tipo de análisis -->
+    <label for="method">Selecciona el método de análisis:</label>
+    <select id="method" name="method" onchange="toggleEvaluationOptions()">
+        <option value="classification">Clasificación</option>
+        <option value="clustering">Agrupamiento</option>
+        <option value="kMeans">K-Means</option>
+    </select>
+
+    <!-- Selector para evaluación (solo visible si el método es clasificación) -->
+    <div id="evaluationOptions" style="display: none; margin-top: 10px;">
+        <label for="evaluation">Método de evaluación:</label>
+        <select id="evaluation" name="evaluation">
+            <option value="use-training-set">Usar conjunto de entrenamiento (use-training-set)</option>
+            <option value="cross-validation">Validación cruzada (cross-validation)</option>
+        </select>
+    </div>
+    
+    <!-- Botón para enviar el archivo y realizar el análisis -->
+    <button onclick="uploadFile()">Subir y Analizar</button>
+
+    <!-- Sección donde se mostrarán los resultados -->
+    <div id="result"></div>
+
+    <script>
+        function toggleEvaluationOptions() {
+            const method = document.getElementById('method').value;
+            const evaluationOptions = document.getElementById('evaluationOptions');
+            
+            if (method === "classification") {
+                evaluationOptions.style.display = "block";
+            } else {
+                evaluationOptions.style.display = "none";
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Selecciona un archivo");
+                return;
+            }
+
+            const method = document.getElementById('method').value;  // Obtener el método de análisis seleccionado
+            const evaluation = document.getElementById('evaluation')?.value || ""; // Obtener la opción de evaluación si aplica
+            
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("method", method);
+            if (method === "classification") {
+                formData.append("evaluation", evaluation);
+            }
+
+            try {
+                const response = await fetch("http://localhost:8080/api/analyze/upload", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.text();
+                    document.getElementById("result").innerText = result;  // Mostrar el resultado en la página
+                } else {
+                    document.getElementById("result").innerText = "Error en la solicitud: " + response.statusText;
+                }
+            } catch (error) {
+                document.getElementById("result").innerText = "Error al analizar el archivo: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
